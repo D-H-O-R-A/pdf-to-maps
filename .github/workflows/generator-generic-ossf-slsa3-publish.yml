@@ -1,0 +1,58 @@
+name: SLSA Generic Generator
+
+on:
+  release:
+    types: [published]
+  workflow_dispatch:
+
+jobs:
+  build:
+    outputs:
+      hashes: ${{ steps.hash.outputs.hashes }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout do código
+        uses: actions/checkout@v4
+
+      - name: Configurar Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20.x'
+          cache: 'npm'
+
+      - name: Instalar dependências e rodar testes
+        run: |
+          npm ci
+          npm test
+
+      - name: Empacotar o projeto (NPM Pack)
+        id: pack
+        run: |
+          # Gera o arquivo .tgz do pacote npm
+          PACK_FILE=$(npm pack)
+          echo "pack_file=$PACK_FILE" >> "$GITHUB_OUTPUT"
+
+      - name: Gerar Hashes (Subjects)
+        id: hash
+        run: |
+          # Calcula o SHA256 do arquivo empacotado e formata em base64 para o SLSA
+          echo "hashes=$(sha256sum ${{ steps.pack.outputs.pack_file }} | base64 -w0)" >> "$GITHUB_OUTPUT"
+
+      - name: Fazer Upload do Tarball como Artefato do Workflow
+        uses: actions/upload-artifact@v4
+        with:
+          name: npm-package
+          path: ${{ steps.pack.outputs.pack_file }}
+          if-no-files-found: error
+          retention-days: 5
+
+  provenance:
+    needs: [build]
+    permissions:
+      actions: read   # Necessário para rastrear a execução do workflow
+      id-token: write # CRÍTICO: Requerido para obter token OIDC e assinar criptograficamente a proveniência
+      contents: write # Requerido para anexar a proveniência gerada à Release do GitHub
+    uses: slsa-framework/slsa-github-generator/.github/workflows/generator_generic_slsa3.yml@v2.0.0
+    with:
+      base64-subjects: "${{ needs.build.outputs.hashes }}"
+      upload-assets: true # Faz upload automático da proveniência (.intoto.jsonl) como asset da Release

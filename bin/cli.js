@@ -91,15 +91,27 @@ async function runCLI() {
     console.log(`${COLORS.magenta}========================================================================${COLORS.reset}`);
 
     if (!fs.existsSync(mapsDir)) {
-        console.error(`${COLORS.red}[ERRO]${COLORS.reset} O diretório de entrada não existe: ${mapsDir}`);
+        console.error(`${COLORS.red}[ERRO]${COLORS.reset} O caminho de entrada não existe: ${mapsDir}`);
         process.exit(1);
     }
 
-    // 2. Escaneamento e filtro de PDFs
-    const files = fs.readdirSync(mapsDir);
-    const pdfFiles = files
-        .filter(f => path.extname(f).toLowerCase() === ".pdf")
-        .map(f => path.join(mapsDir, f));
+    // 2. Identificação do tipo de entrada e filtro de PDFs
+    let pdfFiles = [];
+    const stat = fs.statSync(mapsDir);
+
+    if (stat.isFile()) {
+        if (path.extname(mapsDir).toLowerCase() === ".pdf") {
+            pdfFiles = [mapsDir];
+        } else {
+            console.error(`${COLORS.red}[ERRO]${COLORS.reset} O arquivo fornecido não é um PDF válido: ${mapsDir}`);
+            process.exit(1);
+        }
+    } else {
+        const files = fs.readdirSync(mapsDir);
+        pdfFiles = files
+            .filter(f => path.extname(f).toLowerCase() === ".pdf")
+            .map(f => path.join(mapsDir, f));
+    }
 
     if (pdfFiles.length === 0) {
         console.log(`${COLORS.yellow}Nenhum arquivo de memorial .pdf encontrado para processar.${COLORS.reset}`);

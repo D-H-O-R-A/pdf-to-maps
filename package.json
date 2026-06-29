@@ -9,7 +9,8 @@
   },
   "scripts": {
     "start": "node bin/cli.js",
-    "create-example": "node create_example.js"
+    "create-example": "node create_example.js",
+    "test": "node create_example.js && node bin/cli.js exemplo_sigef.pdf"
   },
   "author": "Diego Oris",
   "license": "MIT",
