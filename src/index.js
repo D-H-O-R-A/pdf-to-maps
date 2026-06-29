@@ -1,9 +1,9 @@
 /**
  * 🗺️ D-H-O-R-A/pdf-to-maps — Geoprocessador SIGEF/INCRA (2D & 3D)
  * 
- * Coordenador Principal do Pipeline de Geoprocessamento.
- * Realiza a orquestração offline e determinística de leitura de PDFs,
- * extração de vértices, projeções cartográficas e renderizações de mapas.
+ * Ponto de Entrada da API Programática da Biblioteca (NPM Library Export).
+ * Permite que outros desenvolvedores importem e usem os parsers, projetores,
+ * renderizadores e exportadores individualmente em suas próprias aplicações.
  * 
  * @author Diego Oris
  * @license MIT
@@ -12,9 +12,9 @@
 
 import fs from "fs";
 import path from "path";
-import { fileURLToPath } from "url";
 import { performance } from "perf_hooks";
 
+// Importações dos submódulos do geoprocessador
 import { readPDFAndReconstructLines } from "./parser/pdfReader.js";
 import { extractVerticesFromReconstructedLines } from "./parser/vertexExtractor.js";
 import { projectVerticesToUTM } from "./projection/utmProjector.js";
@@ -26,7 +26,22 @@ import { exportDXF } from "./export/dxfExporter.js";
 import { exportLog } from "./export/logExporter.js";
 import { ensureDirExists, getFileBaseName } from "./utils/helper.js";
 
-// Estilizações de terminal com cores ANSI para logs profissionais
+// Re-exportação explícita de todas as ferramentas para desenvolvedores externos
+export {
+    readPDFAndReconstructLines,
+    extractVerticesFromReconstructedLines,
+    projectVerticesToUTM,
+    renderPNGMap,
+    renderPNGMap3D,
+    exportGeoJSON,
+    exportSVG,
+    exportDXF,
+    exportLog,
+    ensureDirExists,
+    getFileBaseName
+};
+
+// Estilizações de terminal com cores ANSI para logs
 const COLORS = {
     reset: "\x1b[0m",
     bright: "\x1b[1m",
@@ -34,7 +49,6 @@ const COLORS = {
     green: "\x1b[32m",
     yellow: "\x1b[33m",
     red: "\x1b[31m",
-    magenta: "\x1b[35m",
     gray: "\x1b[90m"
 };
 
@@ -92,12 +106,13 @@ export function validateAndClosePolygon(vertices) {
 }
 
 /**
- * Processa um único memorial descritivo PDF individualmente.
+ * Processa um único memorial descritivo PDF individualmente de forma isolada.
+ * Esta função pode ser importada programaticamente por outros sistemas Node.js.
  * 
  * @param {string} pdfPath Caminho absoluto/relativo para o arquivo PDF
  * @param {string} outputRootDir Pasta raiz onde os resultados serão salvos
  */
-async function processPDF(pdfPath, outputRootDir) {
+export async function processPDF(pdfPath, outputRootDir) {
     const startTime = performance.now();
     const pdfBaseName = getFileBaseName(pdfPath);
     const outputDir = path.join(outputRootDir, pdfBaseName);
@@ -147,55 +162,55 @@ async function processPDF(pdfPath, outputRootDir) {
         // 6.1. Renderização do Mapa 2D de alta definição (PNG)
         try {
             renderPNGMap(projectedVertices, path.join(outputDir, "mapa.png"));
-            console.log(`     ${COLORS.green}➔${COLORS.reset} Mapa 2D de Alta Resolução [OK]`);
+            console.log("     " + COLORS.green + "➔" + COLORS.reset + " Mapa 2D de Alta Resolução [OK]");
         } catch (err) {
             errors.push(`Falha na renderização 2D PNG: ${err.message}`);
-            console.log(`     ${COLORS.red}✗${COLORS.reset} Mapa 2D de Alta Resolução [ERRO]`);
+            console.log("     " + COLORS.red + "✗" + COLORS.reset + " Mapa 2D de Alta Resolução [ERRO]");
         }
 
         // 6.2. Renderização do Mapa 3D Isométrico com sombreamento solar (PNG)
         try {
             renderPNGMap3D(projectedVertices, path.join(outputDir, "mapa_3d.png"));
-            console.log(`     ${COLORS.green}➔${COLORS.reset} Mapa 3D Isométrico Realista [OK]`);
+            console.log("     " + COLORS.green + "➔" + COLORS.reset + " Mapa 3D Isométrico Realista [OK]");
         } catch (err) {
             errors.push(`Falha na renderização 3D PNG: ${err.message}`);
-            console.log(`     ${COLORS.red}✗${COLORS.reset} Mapa 3D Isométrico Realista [ERRO]`);
+            console.log("     " + COLORS.red + "✗" + COLORS.reset + " Mapa 3D Isométrico Realista [ERRO]");
         }
 
         // 6.3. Exportação vetorial em formato escalável (SVG)
         try {
             exportSVG(projectedVertices, path.join(outputDir, "mapa.svg"));
-            console.log(`     ${COLORS.green}➔${COLORS.reset} Vetor Escalável SVG [OK]`);
+            console.log("     " + COLORS.green + "➔" + COLORS.reset + " Vetor Escalável SVG [OK]");
         } catch (err) {
             errors.push(`Falha na exportação SVG: ${err.message}`);
-            console.log(`     ${COLORS.red}✗${COLORS.reset} Vetor Escalável SVG [ERRO]`);
+            console.log("     " + COLORS.red + "✗" + COLORS.reset + " Vetor Escalável SVG [ERRO]");
         }
 
         // 6.4. Exportação GIS padrão OGC (GeoJSON)
         try {
             exportGeoJSON(projectedVertices, path.join(outputDir, "mapa.geojson"), pdfBaseName);
-            console.log(`     ${COLORS.green}➔${COLORS.reset} Vetor Geográfico GeoJSON [OK]`);
+            console.log("     " + COLORS.green + "➔" + COLORS.reset + " Vetor Geográfico GeoJSON [OK]");
         } catch (err) {
             errors.push(`Falha na exportação GeoJSON: ${err.message}`);
-            console.log(`     ${COLORS.red}✗${COLORS.reset} Vetor Geográfico GeoJSON [ERRO]`);
+            console.log("     " + COLORS.red + "✗" + COLORS.reset + " Vetor Geográfico GeoJSON [ERRO]");
         }
 
         // 6.5. Exportação CAD profissional em escala real (DXF)
         try {
             exportDXF(projectedVertices, path.join(outputDir, "mapa.dxf"));
-            console.log(`     ${COLORS.green}➔${COLORS.reset} Desenho Técnico AutoCAD DXF [OK]`);
+            console.log("     " + COLORS.green + "➔" + COLORS.reset + " Desenho Técnico AutoCAD DXF [OK]");
         } catch (err) {
             errors.push(`Falha na exportação CAD DXF: ${err.message}`);
-            console.log(`     ${COLORS.red}✗${COLORS.reset} Desenho Técnico AutoCAD DXF [ERRO]`);
+            console.log("     " + COLORS.red + "✗" + COLORS.reset + " Desenho Técnico AutoCAD DXF [ERRO]");
         }
 
         // 6.6. Criação do log topográfico detalhado com cálculos de área e perímetro
         const duration = performance.now() - startTime;
         exportLog(projectedVertices, zone, isSouth, duration, errors, path.join(outputDir, "log.txt"));
-        console.log(`     ${COLORS.green}➔${COLORS.reset} Relatório de Medições Topográficas [OK]`);
+        console.log("     " + COLORS.green + "➔" + COLORS.reset + " Relatório de Medições Topográficas [OK]");
 
         // Conclusão com sucesso
-        const statusIcon = errors.length > 0 ? `${COLORS.yellow}⚠ [CONCLUÍDO COM AVISOS]` : `${COLORS.green}✔ [SUCESSO]`;
+        const statusIcon = errors.length > 0 ? COLORS.yellow + "⚠ [CONCLUÍDO COM AVISOS]" : COLORS.green + "✔ [SUCESSO]";
         console.log(`${statusIcon}${COLORS.reset} ${pdfBaseName} processado perfeitamente em ${COLORS.bright}${duration.toFixed(0)}ms${COLORS.reset}`);
         if (errors.length > 0) {
             console.log(`   ${COLORS.yellow}Nota: Alguns exportadores secundários geraram alertas:${COLORS.reset}`);
@@ -224,119 +239,3 @@ async function processPDF(pdfPath, outputRootDir) {
         }
     }
 }
-
-/**
- * Resolve e valida o diretório que contém os arquivos PDF de entrada.
- * 
- * @returns {string} Caminho resolvido da pasta de mapas contendo PDFs
- */
-function resolvePDFDirectory() {
-    let mapsDir = process.argv[2];
-
-    if (mapsDir) {
-        return mapsDir;
-    }
-
-    // Descoberta dinâmica de caminhos de arquivos locais de conveniência
-    const hasLocalPDFs = fs.readdirSync(".")
-        .some(f => path.extname(f).toLowerCase() === ".pdf");
-
-    if (hasLocalPDFs) {
-        return ".";
-    }
-
-    if (fs.existsSync("./maps")) {
-        return "./maps";
-    }
-
-    // Se estiver rodando do diretório raiz ou de subpastas profundas
-    if (fs.existsSync("../../../maps")) {
-        return "../../../maps";
-    }
-    if (fs.existsSync("../../maps")) {
-        return "../../maps";
-    }
-
-    // Busca baseada no root da aplicação de forma estrita
-    const __filename = fileURLToPath(import.meta.url);
-    const packageRoot = path.resolve(path.dirname(__filename), "..");
-    const rootHasPDFs = fs.existsSync(packageRoot) && fs.readdirSync(packageRoot)
-        .some(f => path.extname(f).toLowerCase() === ".pdf");
-
-    if (rootHasPDFs) {
-        return packageRoot;
-    }
-
-    console.error(`\n${COLORS.red}${COLORS.bright}[ERRO]${COLORS.reset} Pasta com arquivos PDF não foi localizada!`);
-    console.log(`Por favor, indique o diretório no comando de execução:`);
-    console.log(`  node index.js [caminho_da_pasta_com_pdfs]\n`);
-    process.exit(1);
-}
-
-/**
- * Função principal coordenadora da aplicação.
- */
-async function main() {
-    const pipelineStartTime = performance.now();
-
-    // 1. Apresentação inicial do sistema (Branding livre de IA/Planetone, focado em Diego Oris)
-    console.log(`\n${COLORS.magenta}========================================================================${COLORS.reset}`);
-    console.log(`${COLORS.bright}🗺️  D-H-O-R-A/pdf-to-maps — Geoprocessador SIGEF/INCRA (2D & 3D)${COLORS.reset}`);
-    console.log(`${COLORS.magenta}========================================================================${COLORS.reset}`);
-    console.log(` Autor:  ${COLORS.bright}Diego Oris${COLORS.reset}`);
-    console.log(` Licença: MIT (Open-Source)`);
-    console.log(` Repositório: https://github.com/D-H-O-R-A/pdf-to-maps`);
-    console.log(`${COLORS.magenta}------------------------------------------------------------------------${COLORS.reset}`);
-
-    // 2. Resolução do diretório e verificação de arquivos
-    const mapsDir = resolvePDFDirectory();
-    const outputDir = "./output";
-
-    console.log(` Pasta de Entrada: ${COLORS.cyan}${path.resolve(mapsDir)}${COLORS.reset}`);
-    console.log(` Pasta de Saída:   ${COLORS.cyan}${path.resolve(outputDir)}${COLORS.reset}`);
-    console.log(`${COLORS.magenta}========================================================================${COLORS.reset}`);
-
-    if (!fs.existsSync(mapsDir)) {
-        console.error(`${COLORS.red}[ERRO]${COLORS.reset} O diretório de entrada não existe: ${mapsDir}`);
-        process.exit(1);
-    }
-
-    const files = fs.readdirSync(mapsDir);
-    const pdfFiles = files
-        .filter(f => path.extname(f).toLowerCase() === ".pdf")
-        .map(f => path.join(mapsDir, f));
-
-    if (pdfFiles.length === 0) {
-        console.log(`${COLORS.yellow}Nenhum arquivo de memorial .pdf encontrado para processar.${COLORS.reset}`);
-        process.exit(0);
-    }
-
-    console.log(`Fila de processamento criada: ${COLORS.bright}${pdfFiles.length}${COLORS.reset} arquivos localizados.\n`);
-
-    // Garantia de pasta de saída
-    ensureDirExists(outputDir);
-
-    // 3. Orquestração paralela de alta performance com limite seguro de concorrência
-    // Renderizações com o node-canvas usam CPU de forma paralela intensa.
-    // Usamos fatiamento por lote de concorrência 4 para equilibrar uso de memória e velocidade.
-    const CONCURRENCY_LIMIT = 4;
-    for (let i = 0; i < pdfFiles.length; i += CONCURRENCY_LIMIT) {
-        const batch = pdfFiles.slice(i, i + CONCURRENCY_LIMIT);
-        await Promise.all(batch.map(pdfPath => processPDF(pdfPath, outputDir)));
-    }
-
-    // 4. Fechamento e dashboard consolidado de finalização
-    const totalTimeSeconds = (performance.now() - pipelineStartTime) / 1000;
-    console.log(`\n${COLORS.magenta}========================================================================${COLORS.reset}`);
-    console.log(`${COLORS.green}${COLORS.bright}🏁 PIPELINE DE GEOPROCESSAMENTO CONCLUÍDO COM SUCESSO!${COLORS.reset}`);
-    console.log(`${COLORS.magenta}------------------------------------------------------------------------${COLORS.reset}`);
-    console.log(` Total de Documentos: ${COLORS.bright}${pdfFiles.length}${COLORS.reset}`);
-    console.log(` Tempo Total Decorrido: ${COLORS.bright}${totalTimeSeconds.toFixed(2)} segundos${COLORS.reset}`);
-    console.log(` Saídas Geradas em:   ${COLORS.cyan}${path.resolve(outputDir)}${COLORS.reset}`);
-    console.log(`${COLORS.magenta}========================================================================${COLORS.reset}\n`);
-}
-
-main().catch(err => {
-    console.error(`\n${COLORS.red}❌ [ERRO CRÍTICO] Falha catastrófica no loop principal: ${err.message}${COLORS.reset}\n`);
-    process.exit(1);
-});

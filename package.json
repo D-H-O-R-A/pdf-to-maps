@@ -1,8 +1,16 @@
 {
   "name": "pdf-to-maps",
   "version": "1.0.0",
+  "description": "Offline SIGEF/INCRA geoprocessor in Node.js to extract vertices from georeferenced land deed PDFs, project coordinates to UTM (SIRGAS2000), and render 2D maps, 3D isometric models, GeoJSON, and DXF CAD files.",
   "type": "module",
   "main": "src/index.js",
+  "bin": {
+    "pdf-to-maps": "bin/cli.js"
+  },
+  "scripts": {
+    "start": "node bin/cli.js",
+    "create-example": "node create_example.js"
+  },
   "author": "Diego Oris",
   "license": "MIT",
   "repository": {
@@ -13,6 +21,35 @@
     "url": "https://github.com/D-H-O-R-A/pdf-to-maps/issues"
   },
   "homepage": "https://github.com/D-H-O-R-A/pdf-to-maps#readme",
+  "keywords": [
+    "gis",
+    "cartography",
+    "cad",
+    "dxf",
+    "geojson",
+    "incra",
+    "sigef",
+    "utm",
+    "geoprocessing",
+    "sirgas2000",
+    "3d-isometric",
+    "node-canvas",
+    "topography",
+    "pdf-parser",
+    "land-deed",
+    "geodesic",
+    "turf",
+    "proj4",
+    "diego-oris"
+  ],
+  "files": [
+    "src",
+    "bin",
+    "index.js",
+    "LICENSE",
+    "README.md",
+    "README.en.md"
+  ],
   "dependencies": {
     "@turf/turf": "^7.1.0",
     "canvas": "^3.1.2",

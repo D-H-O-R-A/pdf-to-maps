@@ -22,3 +22,4 @@ pdf_structure.txt
 # PDFs de memoriais/contratos (confidenciais)
 *.pdf
 !exemplo_sigef.pdf
+medium.md
