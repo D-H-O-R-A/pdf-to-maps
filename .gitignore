@@ -1,0 +1,24 @@
+# Dependências do Node
+node_modules/
+package-lock.json
+
+# Pastas de saídas geradas localmente
+output/
+mapa.png
+mapa_3d.png
+
+# Logs e arquivos de sistema
+.DS_Store
+Thumbs.db
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Arquivos de rascunho temporários
+scratch/
+test_*.js
+pdf_structure.txt
+
+# PDFs de memoriais/contratos (confidenciais)
+*.pdf
+!exemplo_sigef.pdf

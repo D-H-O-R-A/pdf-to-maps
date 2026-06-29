@@ -1,0 +1,23 @@
+{
+  "name": "pdf-to-maps",
+  "version": "1.0.0",
+  "type": "module",
+  "main": "src/index.js",
+  "author": "Diego Oris",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/D-H-O-R-A/pdf-to-maps.git"
+  },
+  "bugs": {
+    "url": "https://github.com/D-H-O-R-A/pdf-to-maps/issues"
+  },
+  "homepage": "https://github.com/D-H-O-R-A/pdf-to-maps#readme",
+  "dependencies": {
+    "@turf/turf": "^7.1.0",
+    "canvas": "^3.1.2",
+    "pdf-lib": "^1.17.1",
+    "pdfjs-dist": "^5.4.54",
+    "proj4": "^2.15.0"
+  }
+}
