@@ -1,203 +1,231 @@
-# 🗺️ D-H-O-R-A/pdf-to-maps — Geoprocessador SIGEF/INCRA (2D & 3D)
+# pdf-to-maps — Geoprocessador de Memorial Descritivo SIGEF/INCRA (2D & 3D)
 
 [![GitHub License](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 [![ESModules](https://img.shields.io/badge/js-ESM-yellow.svg)](package.json)
 [![Author](https://img.shields.io/badge/author-Diego%20Oris-orange.svg)](#)
 
-Um pipeline open-source profissional e de altíssima performance em Node.js (ESM) desenvolvido por **Diego Oris** para extrair, processar, projetar, validar e renderizar memoriais descritivos georreferenciados no padrão **INCRA/SIGEF** em mapas **2D e 3D**.
+Biblioteca e pipeline em Node.js (ESM) desenvolvida por **Diego Oris** para extração, validação, projeção geodésica e renderização gráfica bidimensional (2D) e tridimensional isométrica (3D) de polígonos territoriais a partir de memoriais descritivos georreferenciados no padrão **SIGEF/INCRA**.
 
-O sistema funciona de forma **100% offline, determinística e local**, eliminando qualquer dependência de ferramentas externas ou conexões de rede.
+A ferramenta opera de forma **100% offline e determinística**. Não utiliza APIs externas, inteligência artificial ou processamento em nuvem, garantindo segurança jurídica absoluta sobre dados de propriedades e contratos confidenciais.
 
 ---
 
-## 📸 Demonstração dos Mapas Gerados
+## 📸 Demonstração Gráfica de Saída
 
-Aqui estão os mapas gerados automaticamente a partir do arquivo de memorial descritivo padrão SIGEF:
+Abaixo estão os mapas gerados de forma puramente matemática a partir do arquivo de memorial descritivo padrão:
 
-### 📐 Mapa 2D de Alta Resolução (PNG & SVG)
-O mapa bidimensional preserva com perfeição matemática todas as proporções e escala territorial, contendo grades de eixos métricos e rótulos de vértices.
+### 📐 Mapa 2D com Grade de Coordenadas e Escala Plana
+Projeção cartográfica plana com cálculo de padding, escala uniforme para preservar proporção territorial, grade de eixos métricos (UTM) e identificadores de cada vértice.
 ![Mapa 2D de Exemplo](assets/mapa_exemplo_2d.png)
 
-### ⛰️ Mapa 3D Isométrico com Extrusão Volumétrica e Shading de Luz Solar
-Renderização isométrica com cálculo de projeção matemática tridimensional, sombreamento difuso automático com base na orientação das paredes (vetor normal) e contornos em estilo neon brilhante.
+### ⛰️ Mapa 3D Isométrico com Extrusão Volumétrica e Sombreamento Realista
+Bloco tridimensional calculado por rotação matricial trigonométrica, com sombreamento lateral difuso baseado no produto escalar entre a normal da face e o vetor solar, com contornos realçados.
 ![Mapa 3D de Exemplo](assets/mapa_exemplo_3d.png)
 
 ---
 
-## 🧮 Modelagem Matemática e Engenharia Cartográfica
+## 🧮 Fundamentação Matemática e Cartográfica
 
-O pipeline é puramente matemático. Abaixo estão detalhadas todas as equações que sustentam o processamento físico e visual:
+Toda a precisão do pipeline é garantida por modelagem matemática explícita descrita abaixo:
 
-### 1. Conversão DMS (Graus, Minutos e Segundos) para Graus Decimais (DD)
-Cada coordenada esférica extraída em formato sexagesimal $[D^\circ\ M'\ S'']$ é convertida para decimal real através da equação de frações temporais:
+### 1. Conversão DMS para Graus Decimais (DD)
+As coordenadas de latitude e longitude extraídas dos arquivos PDF no formato sexagesimal (Graus, Minutos e Segundos - DMS) são convertidas para decimais reais através da fórmula:
 
-$$DD = \left( |D| + \frac{M}{60} + \frac{S}{3600} \right) \cdot \text{sgn}(D)$$
+$$DD = \text{sgn}(D) \cdot \left( |D| + \frac{M}{60} + \frac{S}{3600} \right)$$
 
-Onde $\text{sgn}(D) = -1$ se a coordenada representar o hemisfério Oeste (Longitude) ou Sul (Latitude), indicado pelo sinal negativo ou letra correspondente.
+Onde:
+- $D$: Graus inteiros extraídos.
+- $M$: Minutos inteiros.
+- $S$: Segundos decimais (precisão flutuante).
+- $\text{sgn}(D)$: Função sinal. Se o caractere de direção for `S` (Sul) ou `W`/`O` (Oeste), ou se houver um caractere `-` explícito, $\text{sgn}(D) = -1$, caso contrário $+1$.
 
-### 2. Cálculo Dinâmico do Fuso (Zone) e Hemisfério UTM
-A projeção para a malha cilíndrica transversal de Mercator (UTM) requer a identificação do fuso de amplitude de $6^\circ$ correspondente. Com base na longitude decimal ($\lambda$), calculamos o fuso pela fórmula:
+O analisador regex faz a higienização de separadores como `°`, `'`, `"`, `”`, `,` ou `.`, unificando a leitura de strings complexas como `-04° 44' 00,00"` ou `04 44 00.00`.
 
-$$\text{Zone} = \left\lfloor \frac{\lambda + 180}{6} \right\rfloor + 1$$
+### 2. Determinação Dinâmica do Fuso e Hemisfério UTM
+A projeção para a grade de coordenadas planas (metros) exige determinar em qual fuso da projeção Transversa de Mercator a coordenada de longitude ($\lambda$) reside:
 
-O hemisfério determina se a origem vertical sofrerá o deslocamento padrão de falsa coordenada Norte (Falsa Latitude) de $10.000.000\text{ m}$ (Hemisfério Sul):
+$$\text{Fuso} = \left\lfloor \frac{\lambda + 180}{6} \right\rfloor + 1$$
 
-$$\text{Falsa Latitude} = \begin{cases} 10.000.000 & \text{se } \phi < 0 \text{ (Sul)} \\ 0 & \text{se } \phi \geq 0 \text{ (Norte)} \end{cases}$$
+O hemisfério rege o deslocamento da coordenada vertical para evitar valores negativos de latitude (Falsa Latitude) no Hemisfério Sul ($\phi < 0$):
 
-*(Para a área de teste no Amazonas, com Longitude $\lambda \approx -61.3^\circ$, a equação resulta na zona **20S**, utilizando o elipsoide **GRS80/SIRGAS2000**).*
+$$\text{Norte}_{\text{falso}} = \begin{cases} 10.000.000\text{ m} & \text{se } \phi < 0 \\ 0\text{ m} & \text{se } \phi \geq 0 \end{cases}$$
 
----
+O sistema projeta os pontos utilizando as equações do elipsoide **GRS80/SIRGAS2000** (parâmetros idênticos ao WGS84, padrão legal de cartografia brasileira) via biblioteca `proj4`.
 
-### 3. Projeção Bidimensional Plana no Canvas (2D)
-Para desenhar o imóvel em um canvas plano de dimensão $W \times H$ (ex: $4000 \times 4000\text{ px}$) sem distorcer o relevo, computamos um fator de escala uniforme $S$ com uma margem de segurança $P$ (Padding):
+### 3. Ajuste de Escala e Aspecto Plano (Canvas 2D)
+Para desenhar o polígono geográfico em um canvas plano quadrado de largura $W$ e altura $H$ (ex: $4000 \times 4000\text{ px}$) sem distorcer o relevo do imóvel (aspecto 1:1 real), calculamos um fator de escala uniforme $S$ considerando uma margem de segurança (padding $P$):
 
 $$S = \min\left( \frac{W - 2P}{X_{\max} - X_{\min}}, \frac{H - 2P}{Y_{\max} - Y_{\min}} \right)$$
 
-As coordenadas projetadas na tela $(u, v)$ com inversão do eixo vertical do Canvas são:
+As posições finais na tela $(u, v)$ são transladadas e espelhadas verticalmente (devido à origem do sistema de coordenadas do canvas computacional estar no canto superior esquerdo):
 
-$$u = P + (X - X_{\min}) \cdot S + \delta_x$$
+$$u = P + (X - X_{\min}) \cdot S + \frac{(W - 2P) - (X_{\max} - X_{\min}) \cdot S}{2}$$
 
-$$v = P + (Y_{\max} - Y) \cdot S + \delta_y$$
+$$v = P + (Y_{\max} - Y) \cdot S + \frac{(H - 2P) - (Y_{\max} - Y_{\min}) \cdot S}{2}$$
 
-Onde as compensações de centralização $\delta_x$ e $\delta_y$ para garantir alinhamento perfeito são dadas por:
+### 4. Rotação e Projeção Isométrica Tridimensional (3D)
+Para gerar a volumetria 3D, transladamos o polígono métrico UTM para uma origem local $[-1000, 1000]$ eliminando ruídos numéricos. Em seguida, aplicamos uma rotação tridimensional de guinada (yaw $\theta = -45^\circ$) sobre o eixo $Z$ e inclinação de arfagem (pitch $\phi = 35.264^\circ$, onde $\sin(\phi) = 1/\sqrt{3}$) para gerar a projeção isométrica padrão:
 
-$$\delta_x = \frac{(W - 2P) - (X_{\max} - X_{\min}) \cdot S}{2}$$
+1. **Rotação Trigonométrica**:
+   $$x_{\text{rot}} = x' \cdot \cos(-45^\circ) - y' \cdot \sin(-45^\circ) = \frac{\sqrt{2}}{2} \cdot (x' + y')$$
+   $$y_{\text{rot}} = x' \cdot \sin(-45^\circ) + y' \cdot \cos(-45^\circ) = \frac{\sqrt{2}}{2} \cdot (-x' + y')$$
 
-$$\delta_y = \frac{(H - 2P) - (Y_{\max} - Y_{\min}) \cdot S}{2}$$
+2. **Projeção Isométrica com Cota Altimétrica ($z$)**:
+   $$u_{3D} = u_{\text{centro}} + x_{\text{rot}} \cdot S_{3D}$$
+   $$v_{3D} = v_{\text{centro}} + y_{\text{rot}} \cdot \sin(35.264^\circ) \cdot S_{3D} - z$$
 
----
+Onde:
+- $x', y'$ são as coordenadas UTM locais transladadas.
+- $S_{3D}$ é o fator de escala calculado para o encaixe tridimensional.
+- $z$ é a altura física da extrusão (base do terreno $z = 0$ ou topo do terreno $z = 350\text{ px}$).
 
-### 4. Projeção Isométrica Tridimensional (3D)
-Para a perspectiva isométrica tridimensional em que representamos o vetor espacial $[X, Y, Z]^T$ na tela bidimensional $[u, v]^T$, o pipeline aplica uma rotação de guinada (Yaw $\theta = -45^\circ$) sobre o eixo Z e uma inclinação de arfagem (Pitch $\phi \approx 35.264^\circ$ ou $\sin(\phi) = 1/\sqrt{3}$):
+### 5. Sombreamento de Faces por Produto Escalar Vetorial (Diffuse Shading)
+Para renderizar profundidade volumétrica nas paredes laterais da extrusão geográfica, calculamos a incidência de luz solar artificial utilizando o produto escalar ($\cdot$) de vetores:
 
-1. **Rotação do Plano (Yaw)**:
-   $$X_{\text{rot}} = X' \cdot \cos(\theta) - Y' \cdot \sin(\theta)$$
-   $$Y_{\text{rot}} = X' \cdot \sin(\theta) + Y' \cdot \cos(\theta)$$
-   *(Onde $X'$ e $Y'$ são os metros UTM normalizados no intervalo $[-1000, 1000]$ para manter precisão de ponto flutuante).*
+1. **Vetor Normal à Parede ($\vec{N}$)** para um segmento entre o vértice $i$ e $i+1$:
+   $$\vec{N} = \left[ -\frac{Y_{i+1} - Y_i}{d}, \frac{X_{i+1} - X_i}{d} \right]^T$$
+   Onde $d = \sqrt{(X_{i+1} - X_i)^2 + (Y_{i+1} - Y_i)^2}$ é a distância em metros da aresta plana.
 
-2. **Projeção de Tela (Pitch + Altura)**:
-   $$u = u_{\text{centro}} + X_{\text{rot}} \cdot S_{3D}$$
-   $$v = v_{\text{centro}} + Y_{\text{rot}} \cdot \sin(\phi) \cdot S_{3D} - z$$
-   *(Onde $z$ é a cota altimétrica de extrusão: $z = 0$ para a base do bloco geográfico e $z = 350\text{ px}$ para a superfície do terreno).*
+2. **Produto Escalar com o Vetor de Luz ($\vec{L}$)**:
+   Definimos o vetor de luz solar vindo do quadrante superior esquerdo como $\vec{L} = [-0.707, 0.707]^T$. O fator de iluminação $k_d$ é calculado por:
+   $$k_d = \vec{N} \cdot \vec{L} = N_x \cdot (-0.707) + N_y \cdot 0.707$$
 
----
-
-### 5. Sombreamento de Paredes por Vetores Normais (3D Diffuse Shading)
-Para criar profundidade volumétrica e realismo nas faces laterais, calculamos a iluminação difusa baseado no produto escalar ($\cdot$) entre o vetor normal unitário da parede horizontal ($\vec{N}$) e o vetor direcional da luz solar artificial ($\vec{L} = [-0.707, 0.707]^T$ que simula o Sol vindo do canto superior esquerdo):
-
-1. **Vetor Normal Unitário $\vec{N}$ da Parede** entre o vértice $i$ e $i+1$:
-   $$\vec{N} = (N_x, N_y) = \left( \frac{-(Y_{i+1} - Y_i)}{L_{\text{seg}}}, \frac{X_{i+1} - X_i}{L_{\text{seg}}} \right)$$
-   Onde $L_{\text{seg}} = \sqrt{(X_{i+1}-X_i)^2 + (Y_{i+1}-Y_i)^2}$ é a extensão da aresta.
-
-2. **Fator de Sombreamento (Dot Product)**:
-   $$\text{shading} = \vec{N} \cdot \vec{L} = N_x \cdot (-0.707) + N_y \cdot 0.707$$
-
-3. **Mapeamento de Luminosidade HSL**:
-   Convertemos o produto escalar no intervalo $[-1.0, 1.0]$ para o canal de luminosidade de cor HSL entre $35\%$ e $100\%$:
-   $$\text{Luminance} = 35\% + (\text{shading} + 1.0) \cdot 32.5\%$$
-   Este algoritmo faz com que as paredes voltadas para o sol fiquem brilhantes, enquanto as paredes opostas caiam em sombras realistas.
+3. **Mapeamento para Luminosidade HSL**:
+   Mapeamos $k_d \in [-1.0, 1.0]$ linearmente para a luminosidade real do canal HSL entre $35\%$ (sombra total) e $100\%$ (iluminação perpendicular total):
+   $$\text{Luminosity} = 35\% + (k_d + 1.0) \cdot 32.5\%$$
 
 ---
 
-### 6. Cálculos Geodésicos de Precisão Real (Turf.js)
-Os cálculos de área e perímetro de precisão do memorial descritivo utilizam as equações geodésicas do modelo de elipsoide **GRS80 (SIRGAS2000)** sobre a curvatura real da Terra, integrando as coordenadas por aproximação geodésica:
-- **Área**: Calculada aplicando o Teorema de Green adaptado para geometria esférica terrestre.
-- **Perímetro**: Soma das distâncias ortodrômicas (Great-Circle / Geodesic lines) calculadas através da equação de Haversine ou curvas geodésicas de Karney.
-
----
-
-## 📁 Estrutura de Diretórios
+## 📁 Estrutura do Repositório
 
 ```
-maps/
-├── assets/                      # Imagens de demonstração dos mapas (2D/3D)
-├── create_example.js            # Criador offline do PDF de testes padrão SIGEF
-├── index.js                     # Entrada principal do processador
-├── package.json                 # Metadados e dependências do projeto
-├── package-lock.json            # Lock de dependências
-├── .gitignore                   # Arquivos ignorados (protege PDFs de contratos reais)
-├── LICENSE                      # Licença MIT assignada a Diego Oris
-└── src/                         # Código-fonte principal do geoprocessador
-    ├── index.js                 # Coordenador principal do pipeline e filas
+pdf-to-maps/
+├── assets/                      # Renders públicos de mapas para demonstração
+├── create_example.js            # Script offline para gerar PDF SIGEF de teste
+├── index.js                     # Ponto de entrada / importação ESModules
+├── package.json                 # Metadados, dependências e autoria de Diego Oris
+├── package-lock.json            # Travamento de versões npm
+├── .gitignore                   # Blindagem de PDFs confidenciais e exceções de testes
+├── LICENSE                      # Licença open-source MIT
+└── src/                         # Código-fonte principal da aplicação
+    ├── index.js                 # Coordenador principal de arquivos e concorrência
     ├── parser/
-    │   ├── pdfReader.js         # Leitor layout-aware Y-coordinate / X-coordinate
-    │   └── vertexExtractor.js   # Extrator regex DMS estrito de vértices
+    │   ├── pdfReader.js         # Leitor espacial de posições geométricas de texto PDF
+    │   └── vertexExtractor.js   # Extrator regex estrito de strings de vértice DMS
     ├── projection/
-    │   └── utmProjector.js      # Detector de zona e projetor métrico Proj4
+    │   └── utmProjector.js      # Projetor de coordenadas geodésicas para metros UTM
     ├── draw/
-    │   ├── mapRenderer.js       # Renderizador de imagem de mapa 2D (Canvas)
-    │   └── mapRenderer3D.js     # Renderizador de imagem de mapa 3D (Canvas)
+    │   ├── mapRenderer.js       # Renderizador de imagem de mapa 2D plana (Canvas)
+    │   └── mapRenderer3D.js     # Renderizador de imagem de mapa 3D isométrico (Canvas)
     ├── export/
-    │   ├── geojsonExporter.js   # Exportador GIS GeoJSON fechado
-    │   ├── dxfExporter.js       # Exportador CAD DXF (POLYLINE R12)
-    │   ├── svgExporter.js       # Exportador vetorial SVG de alta resolução
-    │   └── logExporter.js       # Calculador Turf e gerador de log técnico
+    │   ├── geojsonExporter.js   # Exportador de arquivo vetorial GIS padrão OGC GeoJSON
+    │   ├── dxfExporter.js       # Exportador CAD padrão AutoCAD DXF POLYLINE (R12)
+    │   ├── svgExporter.js       # Exportador vetorial puro de alta definição SVG
+    │   └── logExporter.js       # Calculador Turf e gerador de relatório técnico (TXT)
     └── utils/
-        └── helper.js            # Utilitários cartográficos e matemáticos
+        └── helper.js            # Conversor DMS e gerenciador de diretórios
 ```
 
 ---
 
-## 🔒 Proteção de Dados e Arquivos Confidenciais (`.gitignore`)
+## 🔒 Proteção Contra Vazamento de Dados
 
-Por se tratar de uma ferramenta profissional, muitos arquivos PDFs processados contêm **contratos reais confidenciais** e dados protegidos por LGPD que não devem, sob nenhuma hipótese, subir para repositórios públicos.
+Os memoriais descritivos reais e contratos de imóveis rurais contém dados confidenciais e proprietários de alta criticidade protegidos por termos de sigilo e LGPD. 
 
-Para garantir isso, o arquivo [`.gitignore`](.gitignore) está pré-configurado com regras de exclusão globais:
+Para eliminar qualquer chance de commits acidentais de arquivos privados para repositórios públicos no GitHub, o arquivo [`.gitignore`](.gitignore) vem configurado de fábrica bloqueando de forma absoluta qualquer arquivo PDF na pasta de processamento, abrindo uma exceção estrita apenas para o PDF público gerado para testes:
 
 ```gitignore
 # PDFs de memoriais/contratos (confidenciais)
 *.pdf
+!exemplo_sigef.pdf
 ```
 
-Dessa forma, qualquer documento real que você soltar no diretório para ser processado estará **100% blindado contra commits acidentais**.
+Você pode processar centenas de PDFs confidenciais localmente com segurança absoluta: apenas o arquivo `exemplo_sigef.pdf` poderá ser comitado.
 
 ---
 
-## 🛠️ Instalação e Execução
+## 🛠️ Instalação e Requisitos
 
 ### Pré-requisitos
 - **Node.js** v18 ou superior.
 
-### Passo 1: Instalar as Dependências
-Abra o terminal no diretório do projeto e instale os pacotes necessários:
+### Instalação de Dependências
+Navegue até a pasta do projeto e instale as dependências nativas utilizando:
 ```bash
 npm install
 ```
 
-As principais bibliotecas instaladas são:
-- `@turf/turf`: Geoprocessamento geodésico de precisão real.
-- `canvas`: Manipulação e renderização nativa de imagens de alta definição.
-- `pdfjs-dist`: Parser robusto de vetores de PDF.
-- `proj4`: Transformações de coordenadas espaciais geodésicas.
-- `pdf-lib`: Utilitário para gerar PDFs de demonstração com fontes vetoriais.
+As principais bibliotecas integradas ao geoprocessador são:
+- `canvas`: Biblioteca nativa C++ integrada para renderização bitmap 2D/3D ultrarápida.
+- `@turf/turf`: Motor matemático de geoprocessamento espacial geodésico sobre o elipsoide terrestre.
+- `pdfjs-dist`: Analisador de vetores gráficos e metadados de texto para mapeamento de layout.
+- `proj4`: Transformador de grades espaciais geodésicas e de cartografia.
+- `pdf-lib`: Criador vetorial de documentos PDF de demonstração.
 
 ---
 
-### Passo 2: Criar o PDF de Demonstração (Livre de Dados Reais)
-Para testar a ferramenta sem expor dados reais, execute o utilitário que gera um arquivo PDF georreferenciado fictício chamado `exemplo_sigef.pdf` com 4 vértices fechando um polígono perfeito na região Norte:
+## 🚀 Como Executar
+
+### Passo 1: Criar o PDF de Testes Padrão
+Gere o arquivo `exemplo_sigef.pdf` contendo 4 vértices fechando um imóvel na região Norte (Coari - Amazonas) sem expor dados confidenciais:
 ```bash
 node create_example.js
 ```
 
-### Passo 3: Executar a Extração e Geração de Mapas
-Com os arquivos PDF de memorial presentes no diretório, execute o pipeline principal:
+### Passo 2: Executar o Processador Principal
+Para ler todos os memoriais descritivos presentes na pasta de mapas, execute:
 ```bash
 node index.js
 ```
 
-Após o processamento concluído (geralmente levando menos de **1.5s** por arquivo), você encontrará todos os resultados gerados na pasta `./output/[NOME_DO_PDF]/`:
-- `mapa.png`: Imagem 2D do mapa de alta resolução (4000x4000px).
-- `mapa_3d.png`: Imagem 3D isométrica com relevo e sombreamento solar.
-- `mapa.svg`: Vetor escalável de alta definição.
-- `mapa.geojson`: Arquivo geográfico OGC RFC 7946 ideal para GIS.
-- `mapa.dxf`: Desenho industrial AutoCAD em metros escala 1:1.
-- `vertices.json`: Lista estruturada JSON dos vértices e coordenadas.
-- `log.txt`: Relatório de valorações topográficas com cálculos do Turf.js.
+Se desejar ler uma pasta externa específica, basta passá-la como argumento:
+```bash
+node index.js /caminho/da/sua/pasta/com/pdfs
+```
+
+### Passo 3: Analisar os Resultados
+O sistema gerará instantaneamente uma subpasta para cada PDF processado dentro do diretório `./output/[NOME_DO_PDF]/`:
+- **`vertices.json`**: Os pontos geométricos indexados.
+- **`mapa.png`**: Mapa 2D em alta resolução ($4000 \times 4000\text{ px}$).
+- **`mapa_3d.png`**: Bloco isométrico volumétrico 3D.
+- **`mapa.svg`**: Geometria vetorial escalável para web.
+- **`mapa.geojson`**: Feição geográfica fechada para importar no QGIS ou Google Earth.
+- **`mapa.dxf`**: Arquivo CAD estruturado em escala 1:1 métrica para agrimensores.
+- **`log.txt`**: Relatório técnico com cálculo geodésico da área (hectares e $m^2$) e perímetro via Turf.js.
 
 ---
 
-## 📄 Licença e Direitos Autorais
+## 💻 Integração Programática (API de Exemplo)
 
-Este projeto é disponibilizado sob a licença open-source MIT. 
+Se você estiver desenvolvendo um sistema integrador, pode carregar os submódulos da biblioteca individualmente em qualquer arquivo JavaScript (ESM):
 
-Desenvolvido inteiramente por **Diego Oris**. Sinta-se livre para utilizar, customizar, integrar e distribuir!
+```javascript
+import { readPDFAndReconstructLines } from "./src/parser/pdfReader.js";
+import { extractVerticesFromReconstructedLines } from "./src/parser/vertexExtractor.js";
+import { projectVerticesToUTM } from "./src/projection/utmProjector.js";
+import { validateAndClosePolygon } from "./src/index.js";
+
+async function extrairDados(pdfPath) {
+    // 1. Extrai o texto organizando-o por coordenadas Y e X
+    const lines = await readPDFAndReconstructLines(pdfPath);
+    
+    // 2. Extrai os vértices através de regex decimal e DMS
+    const rawVertices = extractVerticesFromReconstructedLines(lines);
+    
+    // 3. Valida a topologia geométrica e garante fechamento de anel
+    const validVertices = validateAndClosePolygon(rawVertices);
+    
+    // 4. Projeta para metros UTM SIRGAS2000
+    const { projectedVertices, zone, isSouth } = projectVerticesToUTM(validVertices);
+    
+    console.log(`Vértices Georreferenciados na Zona ${zone}${isSouth ? "S" : "N"}:`, projectedVertices);
+}
+```
+
+---
+
+## 📄 Termos de Licença e Créditos
+
+Este projeto é um software livre de distribuição pública licenciado sob os termos da **Licença MIT**.
+
+Desenvolvido inteiramente por **Diego Oris**. Todos os direitos autorais reservados. Sinta-se livre para integrar em ferramentas comerciais, customizar e estender!

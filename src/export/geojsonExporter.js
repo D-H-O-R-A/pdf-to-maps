@@ -21,7 +21,7 @@ export function exportGeoJSON(vertices, outputPath, name = "Imóvel") {
                 properties: {
                     name,
                     verticesCount: vertices.length,
-                    generator: "sigef-pdf-extractor-3d"
+                    generator: "pdf-to-maps"
                 },
                 geometry: {
                     type: "Polygon",
