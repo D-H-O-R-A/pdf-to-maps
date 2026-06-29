@@ -1,6 +1,6 @@
 {
   "name": "pdf-to-maps",
-  "version": "1.0.0",
+  "version": "1.0.2",
   "description": "Offline SIGEF/INCRA geoprocessor in Node.js to extract vertices from georeferenced land deed PDFs, project coordinates to UTM (SIRGAS2000), and render 2D maps, 3D isometric models, GeoJSON, and DXF CAD files.",
   "type": "module",
   "main": "src/index.js",
